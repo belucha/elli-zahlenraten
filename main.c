@@ -46,6 +46,7 @@ Purpose     : Main program Template
 #include "RTE_Components.h"
 #include "GUI.h"
 #include "Board_Buttons.h"
+#include <stdbool.h>
 
 #ifdef RTE_CMSIS_RTOS_RTX
 extern uint32_t os_time;
@@ -96,13 +97,12 @@ void waitForButton() {
 		__nop();
 }
 
-unsigned getDigit(unsigned x, unsigned y)
+unsigned getDigit(unsigned x, unsigned y, bool tens)
 {
 	unsigned number=0;
 	for (;;) {
 		GUI_SetFont(GUI_FONT_D24X32);
-		unsigned xSize = GUI_GetStringDistX("0");
-		GUI_DispDecAt(number, x-xSize/2, y, 1);
+		GUI_DispDecAt(tens?number*10:number, x, y, tens?2:1);
 		unsigned start = os_time;
 		while ((os_time-start)<(number==0?2000:750))
 			if (Buttons_GetState())
@@ -146,13 +146,9 @@ unsigned getNumber(unsigned versuch, unsigned richtig, unsigned letzteZahl)
 		GUI_SetColor(GUI_RED);
 		GUI_DispStringHCenterAt(buffer, xPos, 120);
 	}
-
-	GUI_DispStringHCenterAt("Zehner!", xPos, 190);
-	unsigned tens = getDigit(100, 220);
-	
-	GUI_DispStringHCenterAt("Nun die Einer!", xPos, 190);	
-	unsigned one = getDigit(140, 220);
-	
+	unsigned tens = getDigit(60, 220, true);
+	GUI_DispStringHCenterAt("+", 130, 220);
+	unsigned one = getDigit(150, 220, false);	
 	return tens*10+one;
 }
 
@@ -264,7 +260,7 @@ int main (void) {
 			{ .limit=0, .text="Ich gebe auf!", },
 		};
 		SBewertung const* bewertung=&bewertungen[0];
-		while (bewertung->limit && bewertung->limit>versuche)
+		while (bewertung->limit && bewertung->limit<versuche)
 			bewertung++;		
 		GUI_DispStringHCenterAt(bewertung->text, xPos, 110);
 
