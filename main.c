@@ -147,14 +147,19 @@ unsigned getNumber(unsigned versuch, unsigned richtig, unsigned letzteZahl)
 		GUI_DispStringHCenterAt(buffer, xPos, 120);
 	}
 
-	GUI_DispStringHCenterAt("   Zehner!   ", xPos, 190);
+	GUI_DispStringHCenterAt("Zehner!", xPos, 190);
 	unsigned tens = getDigit(100, 220);
 	
-	GUI_DispStringHCenterAt("     Einer!     ", xPos, 190);	
+	GUI_DispStringHCenterAt("Nun die Einer!", xPos, 190);	
 	unsigned one = getDigit(140, 220);
 	
 	return tens*10+one;
 }
+
+typedef struct {
+			unsigned limit;
+			char* text;
+} SBewertung;
 
 /*********************************************************************
 *
@@ -241,10 +246,7 @@ int main (void) {
 		GUI_SetFont(GUI_FONT_20F_ASCII);
 
 
-		const struct {
-			unsigned limit;
-			char* text;
-		} bewertungen[] = {
+		const SBewertung bewertungen[] = {
 			{ .limit=1, .text="Fast unmoeglich!", },
 			{ .limit=2, .text="Das war viel Glueck!", },
 			{ .limit=3, .text="Supi, duper!!", },
@@ -259,18 +261,18 @@ int main (void) {
 			{ .limit=30, .text="Schlecht!", },
 			{ .limit=50, .text="Raetst Du?", },
 			{ .limit=100, .text="Jetzt konntest\nDu alle probieren!", },
+			{ .limit=0, .text="Ich gebe auf!", },
 		};
-		const char* bewertung=bewertungen[0].text;
-		for (unsigned i=0; i<(sizeof(bewertungen)/sizeof(bewertungen[0])) && versuche>bewertungen[i].limit; i++)
-				bewertung=bewertungen[i].text;
-		
-		GUI_DispStringHCenterAt(bewertung, xPos, 110);
+		SBewertung const* bewertung=&bewertungen[0];
+		while (bewertung->limit && bewertung->limit>versuche)
+			bewertung++;		
+		GUI_DispStringHCenterAt(bewertung->text, xPos, 110);
 
 		GUI_DispStringHCenterAt(
 			"Mit maximal 7 Versuchen\n"
-			"schafft es ein kluger\n"
-			"Spieler immer!!!\n"
-			"\n"
+			"schafft es ein sehr\n"
+			"kluger Spieler\n"
+			"immer!!!\n"
 			"Noch mal?\n"
 			"Taste druecken!\n"
 			, xPos, 190);
