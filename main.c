@@ -45,6 +45,7 @@ Purpose     : Main program Template
 #include "stm32f4xx_hal.h"
 #include "RTE_Components.h"
 #include "GUI.h"
+#include "Board_Buttons.h"
 
 #ifdef RTE_CMSIS_RTOS_RTX
 extern uint32_t os_time;
@@ -88,57 +89,71 @@ void SystemClock_Config(void) {
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
 }
 
-/*********************************************************************
-*
-*       MainTask
-*/
-void MainTask(void) {
-  int xPos, yPos, xSize, ySize;
-  int i = 0;
+void waitForButton() {
+	while (Buttons_GetState()==0)
+		__nop();
+	while (Buttons_GetState()!=0)
+		__nop();
+}
 
-  HAL_Init();                           /* Initialize the HAL Library */
-  SystemClock_Config();                 /* Configure the System Clock */
+unsigned getDigit(unsigned x, unsigned y)
+{
+	unsigned number=0;
+	for (;;) {
+		GUI_SetFont(GUI_FONT_D24X32);
+		unsigned xSize = GUI_GetStringDistX("0");
+		GUI_DispDecAt(number, x-xSize/2, y, 1);
+		unsigned start = os_time;
+		while ((os_time-start)<(number==0?2000:750))
+			if (Buttons_GetState())
+			{
+				while (Buttons_GetState()==1)
+					__nop();
+				return number;
+			}
+		number=(number+1)%10;
+	}	
+}
 
-  GUI_Init();
+unsigned getNumber(unsigned versuch, unsigned richtig, unsigned letzteZahl)
+{
+	GUI_SetBkColor(GUI_BLACK);
+	GUI_Clear();
 
-  GUI_SetBkColor(GUI_RED);
-  GUI_Clear();
-  GUI_Delay(1000);
-  GUI_SetBkColor(GUI_GREEN);
-  GUI_Clear();
-  GUI_Delay(1000);
-  GUI_SetBkColor(GUI_BLUE);
-  GUI_Clear();
-  GUI_Delay(1000);
+	int xSize = LCD_GetXSize();
+	int ySize = LCD_GetYSize();
 
-  GUI_SetBkColor(GUI_BLACK);
-  GUI_Clear();
+	GUI_SetFont(&GUI_FontComic24B_1);
+	GUI_SetColor(GUI_CYAN);
+	char buffer[64];
+	snprintf(buffer, sizeof(buffer), "%u. Versuch!", versuch);
+	GUI_DispStringHCenterAt(buffer,   xSize / 2, 20);
+	GUI_SetColor(GUI_RED);
+	GUI_DispStringHCenterAt("Heute ist Elektrotag!", xSize / 2, ySize - 40);
+		
+	int xPos = xSize / 2;
+	GUI_SetColor(GUI_WHITE);
+	GUI_SetTextMode(GUI_TM_NORMAL);
+	GUI_SetFont(GUI_FONT_20F_ASCII);
+	GUI_DispStringHCenterAt(
+		"Druecke die blaue Taste\n"
+		"um anzuhalten!\n"
+		, xPos, 60);
 
-  xSize = LCD_GetXSize();
-  ySize = LCD_GetYSize();
+	if (versuch>1)
+	{		
+		snprintf(buffer, sizeof(buffer), "Ups %u war zu %s!\nNoch mal!\nDu schaffst das!", letzteZahl, letzteZahl<richtig?"klein":"gross");
+		GUI_SetColor(GUI_RED);
+		GUI_DispStringHCenterAt(buffer, xPos, 120);
+	}
 
-  GUI_SetFont(&GUI_FontComic24B_1);
-  GUI_SetColor(GUI_CYAN);
-  GUI_DispStringHCenterAt("www.keil.com",   xSize / 2, 20);
-  GUI_SetColor(GUI_DARKBLUE);
-  GUI_DispStringHCenterAt("www.segger.com", xSize / 2, ySize - 40);
-
-  xPos = xSize / 2;
-  yPos = ySize / 3;
-  GUI_SetColor(GUI_WHITE);
-  GUI_SetTextMode(GUI_TM_REV);
-  GUI_SetFont(GUI_FONT_20F_ASCII);
-  GUI_DispStringHCenterAt("Hello world!", xPos, yPos);
-  GUI_SetFont(GUI_FONT_D24X32);
-  xSize = GUI_GetStringDistX("0000");
-  xPos -= xSize / 2;
-  yPos += 24 + 10;
-  while (1) {
-    GUI_DispDecAt(i++, xPos, yPos, 4);
-    if (i > 9999) {
-      i = 0;
-    }
-  } 
+	GUI_DispStringHCenterAt("   Zehner!   ", xPos, 190);
+	unsigned tens = getDigit(100, 220);
+	
+	GUI_DispStringHCenterAt("     Einer!     ", xPos, 190);	
+	unsigned one = getDigit(140, 220);
+	
+	return tens*10+one;
 }
 
 /*********************************************************************
@@ -146,8 +161,123 @@ void MainTask(void) {
 *       Main
 */
 int main (void) {
-  MainTask();
-  for (;;);
+  int xPos, xSize, ySize;
+	
+  HAL_Init();                           /* Initialize the HAL Library */
+  SystemClock_Config();                 /* Configure the System Clock */
+
+	RCC->AHB2ENR|=RCC_AHB2ENR_RNGEN;
+	RNG->CR|=RNG_CR_RNGEN;
+	
+	Buttons_Initialize();
+	
+  GUI_Init();
+
+  GUI_SetBkColor(GUI_RED);
+  GUI_Clear();
+  GUI_Delay(200);
+  GUI_SetBkColor(GUI_GREEN);
+  GUI_Clear();
+  GUI_Delay(200);
+  GUI_SetBkColor(GUI_BLUE);
+  GUI_Clear();
+  GUI_Delay(200);
+
+
+	while (1) 
+	{
+		GUI_SetBkColor(GUI_BLACK);
+		GUI_Clear();
+
+		xSize = LCD_GetXSize();
+		ySize = LCD_GetYSize();
+
+		GUI_SetFont(&GUI_FontComic24B_1);
+		GUI_SetColor(GUI_CYAN);
+		GUI_DispStringHCenterAt("Tach Elli, Hallo 3b!",   xSize / 2, 20);
+		GUI_SetColor(GUI_RED);
+		GUI_DispStringHCenterAt("Heute ist Elektrotag!", xSize / 2, ySize - 40);
+		
+		unsigned number = 1+(RNG->DR%100);
+		
+		xPos = xSize / 2;
+		GUI_SetColor(GUI_WHITE);
+		GUI_SetTextMode(GUI_TM_NORMAL);
+		GUI_SetFont(GUI_FONT_20F_ASCII);
+		GUI_DispStringHCenterAt(
+			"Wir spielen Zahlenraten!\n"
+			"Ich habe mir eine Zahl\n"
+			"zwischen 0 und 100\n"
+			"ausgedacht.\n"
+			"Du sollst raten!\n"
+			"\n"
+			"Zum Starten blaue \n"
+			"Taste drücken!\n"
+			, xPos, 60);
+	
+		waitForButton();
+		
+		unsigned wahl=1000;
+		int versuche;
+		for (versuche=1; number!=wahl; versuche++)
+			wahl=getNumber(versuche, number, wahl);
+			
+		// geschafft
+		GUI_SetBkColor(GUI_WHITE);
+		GUI_Clear();
+
+		GUI_SetFont(&GUI_FontComic24B_1);
+		GUI_SetColor(GUI_RED);
+		GUI_DispStringHCenterAt("3b Sieger!", xSize / 2, 20);		
+		GUI_SetColor(GUI_BLUE);
+		GUI_DispStringHCenterAt("Yeah - Geschafft!",   xSize / 2, 50);
+
+		GUI_SetColor(GUI_GREEN);
+		char buffer[64];
+		snprintf(buffer, sizeof(buffer), "Nach %u Versuchen!", versuche-1);
+		GUI_DispStringHCenterAt(buffer,   xSize / 2, 80);
+
+		GUI_SetColor(GUI_BLACK);
+		GUI_SetFont(GUI_FONT_20F_ASCII);
+
+
+		const struct {
+			unsigned limit;
+			char* text;
+		} bewertungen[] = {
+			{ .limit=1, .text="Fast unmoeglich!", },
+			{ .limit=2, .text="Das war viel Glueck!", },
+			{ .limit=3, .text="Supi, duper!!", },
+			{ .limit=5, .text="Immer noch Glueck!", },
+			{ .limit=7, .text="Du bis klug!", },
+			{ .limit=8, .text="Fast optimal!", },
+			{ .limit=9, .text="Gut!", },
+			{ .limit=10, .text="Es geht besser!", },
+			{ .limit=12, .text="Ueben!", },
+			{ .limit=15, .text="Jetzt aber!", },
+			{ .limit=20, .text="Was machst Du?", },
+			{ .limit=30, .text="Schlecht!", },
+			{ .limit=50, .text="Raetst Du?", },
+			{ .limit=100, .text="Jetzt konntest\nDu alle probieren!", },
+		};
+		const char* bewertung=bewertungen[0].text;
+		for (unsigned i=0; i<(sizeof(bewertungen)/sizeof(bewertungen[0])) && versuche>bewertungen[i].limit; i++)
+				bewertung=bewertungen[i].text;
+		
+		GUI_DispStringHCenterAt(bewertung, xPos, 110);
+
+		GUI_DispStringHCenterAt(
+			"Mit maximal 7 Versuchen\n"
+			"schafft es ein kluger\n"
+			"Spieler immer!!!\n"
+			"\n"
+			"Noch mal?\n"
+			"Taste druecken!\n"
+			, xPos, 190);
+	
+		waitForButton();
+
+	}
 }
 
 /*************************** End of file ****************************/
