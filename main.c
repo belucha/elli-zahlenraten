@@ -129,7 +129,7 @@ unsigned getNumber(unsigned versuch, unsigned richtig, unsigned letzteZahl)
 	snprintf(buffer, sizeof(buffer), "%u. Versuch!", versuch);
 	GUI_DispStringHCenterAt(buffer,   xSize / 2, 20);
 	GUI_SetColor(GUI_RED);
-	GUI_DispStringHCenterAt("Heute ist Elektrotag!", xSize / 2, ySize - 40);
+	GUI_DispStringHCenterAt("Conne's Geburtstag!", xSize / 2, ySize - 40);
 		
 	int xPos = xSize / 2;
 	GUI_SetColor(GUI_WHITE);
@@ -195,9 +195,9 @@ int main (void) {
 
 		GUI_SetFont(&GUI_FontComic24B_1);
 		GUI_SetColor(GUI_CYAN);
-		GUI_DispStringHCenterAt("Tach Elli, Hallo 3b!",   xSize / 2, 20);
+		GUI_DispStringHCenterAt("Tach Conrad!",   xSize / 2, 20);
 		GUI_SetColor(GUI_RED);
-		GUI_DispStringHCenterAt("Heute ist Elektrotag!", xSize / 2, ySize - 40);
+		GUI_DispStringHCenterAt("Alles Liebe zum\n8. Geburtstag, wün-\nschen Dani&Elli", xSize / 2, ySize - 80);
 		
 		unsigned number = 1+(RNG->DR%100);
 		
